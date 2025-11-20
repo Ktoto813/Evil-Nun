@@ -1,0 +1,38 @@
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+
+-- Функция создаёт ESP для любого персонажа, кроме твоего
+local function applyESP(character)
+    -- Проверка, чтобы не дублировать
+    if character:FindFirstChild("ESP_Highlight") then
+        character.ESP_Highlight:Destroy()
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.FillColor = Color3.new(1, 0, 0)      -- красный
+    highlight.OutlineColor = Color3.new(1, 1, 1)   -- белая обводка
+    highlight.FillTransparency = 0.5
+    highlight.Parent = character
+end
+
+-- Для всех игроков кроме тебя
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= localPlayer then
+        if player.Character then
+            applyESP(player.Character)
+        end
+        player.CharacterAdded:Connect(function(char)
+            applyESP(char)
+        end)
+    end
+end
+
+-- Для новых игроков
+Players.PlayerAdded:Connect(function(player)
+    if player ~= localPlayer then
+        player.CharacterAdded:Connect(function(char)
+            applyESP(char)
+        end)
+    end
+end)
