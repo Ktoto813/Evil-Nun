@@ -1,38 +1,68 @@
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+local itemNames = {
+    ["golden key"] = true,
+    ["small cabel"] = true,
+    ["shovel key-card"] = true,
+    ["pink key"] = true,
+    ["blue key"] = true,
+    ["heaven bible"] = true,
+    ["cogwheel"] = true
+}
+local killerNames = { -- Добавь сюда точные имена моделей/чар киллеров
+    ["evil nun"] = true,
+    ["nun"] = true,
+    ["killer"] = true
+}
 
--- Функция создаёт ESP для любого персонажа, кроме твоего
-local function applyESP(character)
-    -- Проверка, чтобы не дублировать
-    if character:FindFirstChild("ESP_Highlight") then
-        character.ESP_Highlight:Destroy()
+local espEnabled = false
+local highlighted = {}
+
+-- Хайлайт предмета
+local function highlightItem(obj)
+    if not highlighted[obj] then
+        local hl = Instance.new("Highlight")
+        hl.Adornee = obj
+        hl.FillColor = Color3.fromRGB(0, 255, 255)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 0)
+        hl.FillTransparency = 0.2
+        hl.OutlineTransparency = 0
+        hl.Parent = obj
+        highlighted[obj] = hl
     end
-
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.FillColor = Color3.new(1, 0, 0)      -- красный
-    highlight.OutlineColor = Color3.new(1, 1, 1)   -- белая обводка
-    highlight.FillTransparency = 0.5
-    highlight.Parent = character
 end
 
--- Для всех игроков кроме тебя
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= localPlayer then
-        if player.Character then
-            applyESP(player.Character)
+-- Хайлайт игрока
+local function highlightPlayer(char)
+    if not highlighted[char] then
+        local hl = Instance.new("Highlight")
+        hl.Adornee = char
+        hl.FillColor = Color3.fromRGB(80, 150, 255)
+        hl.OutlineColor = Color3.fromRGB(50, 180, 255)
+        hl.FillTransparency = 0.25
+        hl.OutlineTransparency = 0
+        hl.Parent = char
+        highlighted[char] = hl
+    end
+end
+
+-- Хайлайт киллера
+local function highlightKiller(char)
+    if not highlighted[char] then
+        local hl = Instance.new("Highlight")
+        hl.Adornee = char
+        hl.FillColor = Color3.fromRGB(255, 30, 30)
+        hl.OutlineColor = Color3.fromRGB(255, 0, 0)
+        hl.FillTransparency = 0.05
+        hl.OutlineTransparency = 0
+        hl.Parent = char
+        highlighted[char] = hl
+    end
+end
+
+local function removeHighlights()
+    for obj,hl in pairs(highlighted) do
+        if hl and hl.Parent then
+            hl:Destroy()
         end
-        player.CharacterAdded:Connect(function(char)
-            applyESP(char)
-        end)
     end
+    table.clear(highlighted)
 end
-
--- Для новых игроков
-Players.PlayerAdded:Connect(function(player)
-    if player ~= localPlayer then
-        player.CharacterAdded:Connect(function(char)
-            applyESP(char)
-        end)
-    end
-end)
