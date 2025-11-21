@@ -1,0 +1,19 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Создаём кнопку на экране
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.CoreGui
+
+local jumpButton = Instance.new("TextButton")
+jumpButton.Size = UDim2.new(0, 120, 0, 50)
+jumpButton.Position = UDim2.new(0.75, 0, 0.85, 0)
+jumpButton.Text = "Прыжок"
+jumpButton.TextScaled = true
+jumpButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+jumpButton.Parent = screenGui
+
+jumpButton.MouseButton1Click:Connect(function()
+    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+end)
