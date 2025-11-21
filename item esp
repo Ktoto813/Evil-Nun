@@ -1,0 +1,91 @@
+local itemNames = {
+    ["golden key"] = true,
+    ["small cabel"] = true,
+    ["shovel key-card"] = true,
+    ["pink key"] = true,
+    ["blue key"] = true,
+    ["heaven bible"] = true,
+    ["cogwheel"] = true
+}
+
+local highlighted = {}
+local espEnabled = false
+
+-- Функция для подсветки предмета
+local function highlightItem(obj)
+    if not highlighted[obj] then
+        local hl = Instance.new("Highlight")
+        hl.Adornee = obj
+        hl.FillColor = Color3.fromRGB(0, 255, 255)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 0)
+        hl.FillTransparency = 0.25
+        hl.OutlineTransparency = 0
+        hl.Parent = obj
+        highlighted[obj] = hl
+    end
+end
+
+-- Удалить подсветку
+local function unhighlightItem(obj)
+    if highlighted[obj] then
+        highlighted[obj]:Destroy()
+        highlighted[obj] = nil
+    end
+end
+
+-- Включить ESP
+local function enableESP()
+    for _,obj in ipairs(game.Workspace:GetDescendants()) do
+        local n = (obj.Name or ""):lower()
+        if itemNames[n] and (obj:IsA("Part") or obj:IsA("MeshPart")) then
+            highlightItem(obj)
+        elseif obj:FindFirstChild("Handle") and itemNames[(obj.Handle.Name or ""):lower()] then
+            highlightItem(obj.Handle)
+        elseif obj:FindFirstChildWhichIsA("Part") and itemNames[(obj:FindFirstChildWhichIsA("Part").Name or ""):lower()] then
+            highlightItem(obj:FindFirstChildWhichIsA("Part"))
+        end
+    end
+    espEnabled = true
+end
+
+-- Выключить ESP
+local function disableESP()
+    for obj,hl in pairs(highlighted) do
+        if hl and typeof(hl) == "Instance" and hl.Parent then
+            hl:Destroy()
+        end
+    end
+    highlighted = {}
+    espEnabled = false
+end
+
+-- GUI кнопка
+local player = game.Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+local btn = Instance.new("TextButton")
+btn.Parent = gui
+btn.Size = UDim2.new(0,160,0,40)
+btn.Position = UDim2.new(0,12,0.85,0)
+btn.Text = "ВКЛЮЧИТЬ ESP"
+btn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.TextSize = 22
+btn.Font = Enum.Font.GothamBold
+btn.BorderSizePixel = 2
+btn.BorderColor3 = Color3.fromRGB(0,0,0)
+
+btn.MouseButton1Click:Connect(function()
+    if not espEnabled then
+        enableESP()
+        btn.Text = "ВЫКЛЮЧИТЬ ESP"
+        btn.BackgroundColor3 = Color3.fromRGB(255,120,0)
+    else
+        disableESP()
+        btn.Text = "ВКЛЮЧИТЬ ESP"
+        btn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    end
+end)
