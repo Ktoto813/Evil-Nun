@@ -1,72 +1,48 @@
--- Evil Nun Universal - Rayfield ESP, Scanner, Jump [STRICT WHITELIST, оптимизировано]
--- По пожеланиям: только Golden Key, Blue Key, Master Key, Pink Key, Lockpick, Small Cable, Heaven Bible, Cogwheel
-if not game:GetService('CoreGui') then error("CoreGui не найден! Попробуй другой Executor.") end
-
+-- Evil Nun: ESP + Jump + Scanner - Only Starts ESP if Scanner Was Used (Rayfield version, totally standalone)
+-- by kauuuvuv-coder
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Workspace, RS, Players = game:GetService("Workspace"), game:GetService("ReplicatedStorage"), game:GetService("Players")
 local LP = Players.LocalPlayer
 
---==== СТРОГОЕ МЕНЮ ПРЕДМЕТОВ ====--
-local ITEM_WHITELIST = {
-    ["Golden Key"] = true,
-    ["Blue Key"] = true,
-    ["Master Key"] = true,
-    ["Pink Key"] = true,
-    ["Lockpick"] = true,
-    ["small cabel"] = true,
-    ["Heaven Bible"] = true,
-    ["Cogwheel"] = true,
-}
-local ESP_COLORS = {
+-- Предметы для ESP (whitelist)
+local WHITELIST = {
     ["Golden Key"] = Color3.fromRGB(255, 213, 51),
-    ["Blue Key"]   = Color3.fromRGB(67,134,255),
+    ["Blue Key"] = Color3.fromRGB(67,134,255),
     ["Master Key"] = Color3.fromRGB(202,245,110),
-    ["Pink Key"]   = Color3.fromRGB(255,107,182),
-    ["Lockpick"]   = Color3.fromRGB(255,170,75),
-    ["small cabel"]= Color3.fromRGB(70,255,255),
-    ["Heaven Bible"]= Color3.fromRGB(163,126,252),
-    ["Cogwheel"]   = Color3.fromRGB(128, 227, 153),
+    ["Pink Key"] = Color3.fromRGB(255,107,182),
+    ["Lockpick"] = Color3.fromRGB(255,170,75),
+    ["small cabel"] = Color3.fromRGB(70,255,255),
+    ["Heaven Bible"] = Color3.fromRGB(163,126,252),
+    ["Cogwheel"] = Color3.fromRGB(128, 227, 153),
 }
-local ITEM_COLOR_PICKER = {}
-for name,col in pairs(ESP_COLORS) do ITEM_COLOR_PICKER[name]=col end
+local ITEM_CUSTOMCOLOR = {}; for k,v in pairs(WHITELIST)do ITEM_CUSTOMCOLOR[k]=v end
 
---======== СКАННЕР =======--
-local scannedItems = {}      -- [Instance] = true
-local scannedNames = {}      -- [имя (с регистрацией)] = true
-local scannerWasUsed = false
-
+-- Сканнер: Save scanned items (only whitelist)
+local scannedItems, scannedNames, scannerWasUsed = {}, {}, false
 local function scanAllGameItems()
-    table.clear(scannedItems)
-    table.clear(scannedNames)
-    -- Только строго whitelisted!
+    scannedItems, scannedNames = {}, {}
     local folders = {}
-    local function addFolder(f) if f then table.insert(folders, f) end end
-    addFolder(RS:FindFirstChild("Items"))
-    addFolder(RS:FindFirstChild("Tools"))
-    local maps = RS:FindFirstChild("Maps") if maps then for _,m in ipairs(maps:GetChildren()) do addFolder(m) end end
-    local worldMap = Workspace:FindFirstChild("MapFolder") if worldMap then for _,m in ipairs(worldMap:GetChildren()) do addFolder(m) end end
-
-    for _,folder in ipairs(folders) do
-        for _,desc in ipairs(folder:GetDescendants()) do
-            if desc.Name and ITEM_WHITELIST[desc.Name] and (desc:IsA("Tool") or desc:IsA("Part") or desc:IsA("MeshPart")) then
-                scannedItems[desc] = true
-                scannedNames[desc.Name] = true
+    local function add(f) if f then table.insert(folders, f) end end
+    add(RS:FindFirstChild("Items")); add(RS:FindFirstChild("Tools"))
+    local maps = RS:FindFirstChild("Maps") if maps then for _,m in ipairs(maps:GetChildren())do add(m) end end
+    local mf = Workspace:FindFirstChild("MapFolder") if mf then for _,m in ipairs(mf:GetChildren())do add(m) end end
+    for _,folder in ipairs(folders)do
+        for _,obj in ipairs(folder:GetDescendants())do
+            if obj.Name and WHITELIST[obj.Name] and (obj:IsA("Tool") or obj:IsA("Part") or obj:IsA("MeshPart")) then
+                scannedItems[obj]=true scannedNames[obj.Name]=true
             end
         end
     end
     scannerWasUsed = true
 end
-
 local function getScannedNamesText()
-    local items = {}
-    for n in pairs(scannedNames) do table.insert(items, n) end
-    table.sort(items)
-    return #items==0 and "<нет ничего>" or table.concat(items, "\n")
+    local t = {}; for n in pairs(scannedNames) do table.insert(t, n) end
+    table.sort(t)
+    return #t==0 and "<нет>" or table.concat(t, "\n")
 end
 
---======== ESP =======--
-local highlights = setmetatable({}, {__mode="k"})
-local ESP_ACTIVE = false
+-- ESP logic
+local highlights, ESP_ACTIVE = setmetatable({}, {__mode="k"}), false
 local function clearESP()
     for obj,hl in pairs(highlights) do if hl and hl.Parent then pcall(function() hl:Destroy() end) end end
     table.clear(highlights)
@@ -77,26 +53,22 @@ local function updateESP()
     for obj in pairs(scannedItems) do
         if obj:IsDescendantOf(game) then
             local hl = Instance.new("Highlight")
-            hl.Adornee = obj
-            local cname = obj.Name
-            hl.FillColor = ITEM_COLOR_PICKER[cname] or Color3.new(1,1,1)
+            hl.Adornee, hl.Parent = obj, obj
+            hl.FillColor = ITEM_CUSTOMCOLOR[obj.Name] or Color3.new(1,1,1)
             hl.OutlineColor = Color3.fromRGB(10,10,10)
-            hl.FillTransparency = 0.15
-            hl.OutlineTransparency = 0.01
-            hl.Parent = obj
-            highlights[obj] = hl
+            hl.FillTransparency, hl.OutlineTransparency = 0.15, 0.01
+            highlights[obj]=hl
         end
     end
 end
 
---=== JUMP ===--
+-- JUMP button logic
 local jumpBtnGui, jumpBtnConn
 local function showJumpBtn(state)
     if state then
         if jumpBtnGui and jumpBtnGui.Parent then jumpBtnGui.Enabled = true return end
-        jumpBtnGui = Instance.new("ScreenGui")
-        jumpBtnGui.Name = "JumpButtonGui"
-        jumpBtnGui.Parent = game.CoreGui
+        jumpBtnGui = Instance.new("ScreenGui");
+        jumpBtnGui.Name = "JumpButtonGui"; jumpBtnGui.Parent = game.CoreGui
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0, 120, 0, 48)
         btn.Position = UDim2.new(0.8, 0, 0.82, 0)
@@ -119,70 +91,64 @@ local function showJumpBtn(state)
     end
 end
 
---========= RAYFIELD UI =========--
+-- === RAYFIELD UI ===
 local Window = Rayfield:CreateWindow({
-    Name = "Evil Nun: ESP/SCAN/JUMP",
-    LoadingTitle = "Evil Nun Tools",
-    LoadingSubtitle = "Whitelist ESP Edition",
+    Name = "Evil Nun | ESP + Scanner + Jump",
+    LoadingTitle = "Evil Nun",
+    LoadingSubtitle = "Rayfield Full Ver",
     ConfigurationSaving = {Enabled=false},
     KeySystem = false
 })
 
---=== 1. SCANNER TAB ===
+-- Scanner Tab
 local tabScan = Window:CreateTab("Scanner")
-tabScan:CreateSection("Просканируй только whitelisted-предметы")
-
+tabScan:CreateSection("1. Сканируй whitelisted предметы")
 tabScan:CreateButton({
-    Name = "🔎 Сканировать карту на ключи и нужные предметы",
+    Name = "🔎 Сканировать карту (только whitelisted)",
     Callback = function()
         scanAllGameItems()
         Rayfield:Notify({
             Title = "Сканер завершён!",
-            Content = "На карте найдено: " .. tostring(#(function() local c=0 for _ in pairs(scannedNames) do c=c+1 end return {c} end)()[1]),
-            Duration = 5
+            Content = "На карте: "..tostring(#(function() local n=0 for _ in pairs(scannedNames)do n=n+1 end return {n} end)()[1]).." предмет(а/ов)",
+            Duration = 4
         })
         updateESP()
     end
 })
-
 tabScan:CreateParagraph({
-    Title = "Можно подсветить:",
-    Content = function()
-        return getScannedNamesText()
-    end
+    Title = "Найдено на карте:",
+    Content = function() return getScannedNamesText() end
 })
 
---=== 2. ESP TAB ===
+-- ESP Tab
 local tabESP = Window:CreateTab("ESP")
-tabESP:CreateSection("Подсветка ТОЛЬКО после сканирования!")
+tabESP:CreateSection("2. Включай ESP только после сканирования!")
+
 tabESP:CreateToggle({
-    Name = "Включить ESP на whitelisted-предметы",
+    Name = "Включить ESP (только по найденным)",
     CurrentValue = false,
     Callback = function(val)
         ESP_ACTIVE = val
         updateESP()
     end
 })
-for item,defColor in pairs(ESP_COLORS) do
+for item,defColor in pairs(WHITELIST) do
     tabESP:CreateColorPicker({
-        Name = "Цвет: " .. item,
+        Name = "Цвет: "..item,
         Color = defColor,
         Callback = function(v)
-            ITEM_COLOR_PICKER[item] = v
+            ITEM_CUSTOMCOLOR[item]=v
             updateESP()
         end
     })
 end
 tabESP:CreateButton({
     Name = "Очистить всю подсветку",
-    Callback = function()
-        clearESP()
-        Rayfield:Notify({Title = "ESP", Content = "Подсветка OFF", Duration = 2})
-    end
+    Callback = clearESP
 })
 
---=== 3. JUMP TAB ===
-local tabJump = Window:CreateTab("JUMP")
+-- Jump Tab
+local tabJump = Window:CreateTab("Jump")
 tabJump:CreateToggle({
     Name = "Показать кнопку прыжка (JUMP)",
     CurrentValue = false,
@@ -190,12 +156,11 @@ tabJump:CreateToggle({
 })
 
 Rayfield:Notify({
-    Title="Evil Nun Tools: ESP + SCANNER + JUMP",
-    Content="Сначала сканируй, потом включай ESP. Только актуальные whitelisted объекты.",
-    Duration=8
+    Title="Evil Nun Tools",
+    Content="1. Отсканируй карту\n2. Потом включай ESP!\n(Если Rayfield не показывает окно, используй другой executor)",
+    Duration=7
 })
 
---=== Автообновление ESP при появлении/уходе ===--
 spawn(function()
     while true do
         if ESP_ACTIVE and scannerWasUsed then updateESP() end
